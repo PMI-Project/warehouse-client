@@ -10,9 +10,9 @@ jobs:
     steps:
       - checkout
       - node/install-packages:
-          pkg-manager: npm
+          pkg-manager: pnpm
       - run:
-          command: npm run build
+          command: pnpm run build
       - run:
           name: Create the ~/artifacts directory if it doesn't exist
           command: mkdir -p ~/artifacts
