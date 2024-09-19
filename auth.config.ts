@@ -18,6 +18,7 @@ const authConfig = {
         }
       },
       async authorize(credentials, req) {
+        console.log(req);
         const user = {
           id: '1',
           name: 'John',
