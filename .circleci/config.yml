@@ -28,6 +28,9 @@ jobs:
     docker:
       - image: cimg/base:stable
     steps:
+      - add_ssh_keys:
+          fingerprints:
+            -
       # Replace this with steps to deploy to users
       - run:
           name: deploy
