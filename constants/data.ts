@@ -110,12 +110,29 @@ export type Employee = {
   profile_picture?: string | null; // Profile picture can be a string (URL) or null (if no picture)
 };
 
+export type Product = {
+  id: number;
+  sku: string;
+  name: string;
+  description: string;
+  price: number;
+  quantity: number;
+  category: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export const navItems: NavItem[] = [
   {
     title: 'Dashboard',
     href: '/dashboard',
     icon: 'dashboard',
     label: 'Dashboard'
+  },
+  {
+    title: 'Products',
+    href: '/dashboard/products',
+    icon: 'boxes'
   },
   {
     title: 'User',
