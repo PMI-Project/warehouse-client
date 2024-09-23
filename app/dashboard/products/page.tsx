@@ -26,6 +26,8 @@ export default async function page({ searchParams }: paramsProps) {
   const category = searchParams.category || undefined;
   const minPrice = Number(searchParams.minPrice) || undefined;
   const maxPrice = Number(searchParams.minPrice) || undefined;
+  const startDate = searchParams.startDate || undefined;
+  const endDate = searchParams.endDate || undefined;
   const offset = (page - 1) * pageLimit;
 
   function fetchProducts(): Promise<PaginatedResponse<Product>> {
@@ -34,7 +36,14 @@ export default async function page({ searchParams }: paramsProps) {
         resolve(
           searchAndPaginateProducts(
             { page, pageSize: pageLimit },
-            { name: productName, category, minPrice, maxPrice }
+            {
+              name: productName,
+              category,
+              minPrice,
+              maxPrice,
+              startDate,
+              endDate
+            }
           )
         );
       }, 1000);
@@ -45,7 +54,6 @@ export default async function page({ searchParams }: paramsProps) {
   const totalProducts = res.pagination.totalItems;
   const pageCount = res.pagination.totalPages;
   const products: Product[] = res.data;
-  console.log(products);
 
   return (
     <PageContainer>

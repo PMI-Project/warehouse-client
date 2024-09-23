@@ -34,18 +34,21 @@ import {
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import { DateRange } from 'react-day-picker';
+import { CalendarDateRangePicker } from '@/components/date-range-picker';
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   searchKey: string;
   pageNo: number;
-  totalUsers: number;
+  totalUsers?: number;
   pageSizeOptions?: number[];
   pageCount: number;
   searchParams?: {
     [key: string]: string | string[] | undefined;
   };
+  totalProducts?: number;
 }
 
 export function ProductTable<TData, TValue>({
@@ -55,7 +58,8 @@ export function ProductTable<TData, TValue>({
   searchKey,
   totalUsers,
   pageCount,
-  pageSizeOptions = [10, 20, 30, 40, 50]
+  pageSizeOptions = [10, 20, 30, 40, 50],
+  totalProducts
 }: DataTableProps<TData, TValue>) {
   const router = useRouter();
   const pathname = usePathname();
@@ -68,6 +72,10 @@ export function ProductTable<TData, TValue>({
   const per_page = searchParams?.get('limit') ?? '10';
   const perPageAsNumber = Number(per_page);
   const fallbackPerPage = isNaN(perPageAsNumber) ? 10 : perPageAsNumber;
+
+  const [dateRange, setDateRange] = React.useState<DateRange | undefined>(
+    undefined
+  );
 
   /* this can be used to get the selectedrows 
   console.log("value", table.getFilteredSelectedRowModel()); */
@@ -118,12 +126,20 @@ export function ProductTable<TData, TValue>({
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     state: {
-      pagination: { pageIndex, pageSize }
+      pagination: { pageIndex, pageSize },
+      globalFilter: { dateRange }
     },
     onPaginationChange: setPagination,
     getPaginationRowModel: getPaginationRowModel(),
     manualPagination: true,
-    manualFiltering: true
+    manualFiltering: true,
+    globalFilterFn: (row, columnId, filterValue) => {
+      const { dateRange } = filterValue;
+      if (!dateRange || !dateRange.from || !dateRange.to) return true;
+
+      const rowDate = new Date(row.getValue(columnId));
+      return rowDate >= dateRange.from && rowDate <= dateRange.to;
+    }
   });
 
   const searchValue = table.getColumn(searchKey)?.getFilterValue() as string;
@@ -159,16 +175,54 @@ export function ProductTable<TData, TValue>({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchValue]);
 
+  React.useEffect(() => {
+    if (dateRange?.from) {
+      const queryParams: Record<string, string | number | null> = {
+        page: 1,
+        startDate: dateRange.from.toISOString()
+      };
+
+      if (dateRange.to) {
+        queryParams.endDate = dateRange.to.toISOString();
+      }
+
+      router.push(`${pathname}?${createQueryString(queryParams)}`, {
+        scroll: false
+      });
+    } else {
+      // Clear the date range from the query params when dateRange is undefined
+      router.push(
+        `${pathname}?${createQueryString({
+          page: 1,
+          startDate: null,
+          endDate: null
+        })}`,
+        {
+          scroll: false
+        }
+      );
+    }
+
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, [dateRange, pathname, router, createQueryString]);
+
   return (
     <>
-      <Input
-        placeholder={`Search ${searchKey}...`}
-        value={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ''}
-        onChange={(event) =>
-          table.getColumn(searchKey)?.setFilterValue(event.target.value)
-        }
-        className="w-full md:max-w-sm"
-      />
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <Input
+          placeholder={`Search ${searchKey}...`}
+          value={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ''}
+          onChange={(event) =>
+            table.getColumn(searchKey)?.setFilterValue(event.target.value)
+          }
+          className="w-full md:max-w-sm"
+        />
+        <CalendarDateRangePicker
+          className="w-full md:w-auto"
+          date={dateRange}
+          setDate={(newDateRange) => setDateRange(newDateRange)}
+        />
+      </div>
       <ScrollArea className="h-[calc(80vh-220px)] rounded-md border">
         <Table className="relative">
           <TableHeader>

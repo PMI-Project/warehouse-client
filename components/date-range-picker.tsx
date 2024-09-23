@@ -13,13 +13,13 @@ import * as React from 'react';
 import { DateRange } from 'react-day-picker';
 
 export function CalendarDateRangePicker({
-  className
-}: React.HTMLAttributes<HTMLDivElement>) {
-  const [date, setDate] = React.useState<DateRange | undefined>({
-    from: new Date(2023, 0, 20),
-    to: addDays(new Date(2023, 0, 20), 20)
-  });
-
+  className,
+  date,
+  setDate
+}: React.HTMLAttributes<HTMLDivElement> & {
+  date: DateRange | undefined;
+  setDate: (date: DateRange | undefined) => void;
+}) {
   return (
     <div className={cn('grid gap-2', className)}>
       <Popover>
@@ -55,6 +55,7 @@ export function CalendarDateRangePicker({
             selected={date}
             onSelect={setDate}
             numberOfMonths={2}
+            captionLayout="dropdown"
           />
         </PopoverContent>
       </Popover>

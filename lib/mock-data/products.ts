@@ -14,6 +14,8 @@ interface SearchParams {
   category?: string;
   minPrice?: number;
   maxPrice?: number;
+  startDate?: string;
+  endDate?: string;
 }
 
 const productSchema: { [K in keyof Product]: SchemaFunction<Product[K]> } = {
@@ -25,8 +27,16 @@ const productSchema: { [K in keyof Product]: SchemaFunction<Product[K]> } = {
   category: (f: Faker) =>
     f.helpers.arrayElement(['Category A', 'Category B', 'Category C']),
   quantity: (f: Faker) => f.number.int({ max: 100 }),
-  created_at: (f: Faker) => format(f.date.recent(), 'yyyy-MM-dd'),
-  updated_at: (f: Faker) => format(f.date.recent(), 'yyyy-MM-dd')
+  created_at: (f: Faker) =>
+    format(
+      f.date.between({ from: '2020-09-23', to: '2024-09-23' }),
+      'yyyy-MM-dd'
+    ),
+  updated_at: (f: Faker) =>
+    format(
+      f.date.between({ from: '2020-09-23', to: '2024-09-23' }),
+      'yyyy-MM-dd'
+    )
 };
 
 const allProducts: Product[] = generateFakeData(productSchema, 100);
@@ -36,8 +46,8 @@ export function searchAndPaginateProducts(
   searchParams: SearchParams
 ): PaginatedResponse<Product> {
   const { page, pageSize } = paginationParams;
-  const { name, category, minPrice, maxPrice } = searchParams;
-
+  const { name, category, minPrice, maxPrice, startDate, endDate } =
+    searchParams;
   let filteredProducts = allProducts;
 
   if (name) {
@@ -61,6 +71,19 @@ export function searchAndPaginateProducts(
   if (maxPrice !== undefined) {
     filteredProducts = filteredProducts.filter(
       (product) => product.price <= maxPrice
+    );
+  }
+
+  if (startDate !== undefined) {
+    filteredProducts = filteredProducts.filter((product) => {
+      return new Date(product.created_at) >= new Date(startDate);
+    });
+  }
+
+  if (endDate !== undefined) {
+    console.log(new Date(endDate));
+    filteredProducts = filteredProducts.filter(
+      (product) => new Date(product.created_at) >= new Date(endDate)
     );
   }
 
