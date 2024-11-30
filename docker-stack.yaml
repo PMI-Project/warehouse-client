@@ -25,7 +25,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
 
   web:
-    image: ghcr.io/PMI-Project/warehouse-client:${GIT_COMMIT_HASH:-latest}
+    image: ghcr.io/pmi-project/warehouse-client:${GIT_COMMIT_HASH:-latest}
     labels:
       - 'traefik.enable=true'
       - 'traefik.http.services.web.loadbalancer.server.port=8080'

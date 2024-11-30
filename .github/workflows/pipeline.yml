@@ -51,8 +51,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/PMI-Project/warehouse-client:latest
-            ghcr.io/PMI-Project/warehouse-client:${{ github.sha }}
+            ghcr.io/pmi-project/warehouse-client:latest
+            ghcr.io/pmi-project/warehouse-client:${{ github.sha }}
   deploy:
     runs-on: ubuntu-latest
     needs:
