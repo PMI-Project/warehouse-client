@@ -25,7 +25,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # This will do the trick, use the corresponding env file for each environment.
-COPY .env.staging .env.production
+ARG NEXT_PUBLIC_DEVICE_HUB ARG AUTH_URL_DEV 
+ENV NEXT_PUBLIC_DEVICE_HUB=${NEXT_PUBLIC_DEVICE_HUB} 
+ENV AUTH_URL_DEV=${AUTH_URL_DEV}
 RUN npm run build
 
 # 3. Production image, copy all the files and run next
