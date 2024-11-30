@@ -72,7 +72,7 @@ jobs:
         with:
           name: warehouse-client
           file: docker-stack.yaml
-          host: wms.artix-cloud.com
+          host: wms.artix-labs.com
           user: artixcloud
           ssh_key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
           env_file: ./envfile
