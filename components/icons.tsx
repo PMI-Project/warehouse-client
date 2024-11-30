@@ -19,6 +19,7 @@ import {
   LucideProps,
   Moon,
   MoreVertical,
+  Package,
   Pizza,
   Plus,
   Settings,
@@ -78,5 +79,6 @@ export const Icons = {
     </svg>
   ),
   twitter: Twitter,
-  check: Check
+  check: Check,
+  package: Package
 };

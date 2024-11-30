@@ -118,6 +118,12 @@ export const navItems: NavItem[] = [
     label: 'Dashboard'
   },
   {
+    title: 'Product',
+    href: '/dashboard/products',
+    icon: 'package',
+    label: 'product'
+  },
+  {
     title: 'User',
     href: '/dashboard/user',
     icon: 'user',
@@ -148,3 +154,5 @@ export const navItems: NavItem[] = [
     label: 'login'
   }
 ];
+
+export const DEVICE_HUB = process.env.NEXT_PUBLIC_DEVICE_HUB as string;
