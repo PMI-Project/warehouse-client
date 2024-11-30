@@ -73,6 +73,6 @@ jobs:
           name: warehouse-client
           file: docker-stack.yaml
           host: artix-labs.com
-          user: artixcloud
-          ssh_key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          user: ${{ secrets.ARTIX_CLOUD_USERNAME }}
+          pass: ${{ secrets.ARTIX_CLOUD_PASSWORD }}
           env_file: ./envfile
