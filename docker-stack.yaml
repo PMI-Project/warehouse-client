@@ -1,37 +1,91 @@
+version: '3.8'
 services:
-  traefik:
-    image: traefik:v3.1
-    command:
-      - '--providers.docker'
-      - '--providers.docker.exposedbydefault=false'
-      - '--entryPoints.websecure.address=:443'
-      - '--certificatesresolvers.myresolver.acme.tlschallenge=true'
-      - '--certificatesresolvers.myresolver.acme.email=ajiprio@hotmail.com'
-      - '--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json'
-      - '--entrypoints.web.address=:80'
-      - '--entrypoints.web.http.redirections.entrypoint.to=websecure'
-      - '--entrypoints.web.http.redirections.entrypoint.scheme=https'
-    ports:
-      - mode: host
-        protocol: tcp
-        published: 80
-        target: 80
-      - mode: host
-        protocol: tcp
-        published: 443
-        target: 443
+  postgres:
+    image: postgres:latest
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: P@ssw0rd
+      POSTGRES_DB: wms-pmi
     volumes:
-      - letsencrypt:/letsencrypt
-      - /var/run/docker.sock:/var/run/docker.sock
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    ports:
+      - '5432:5432'
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        order: stop-first
+
+  redis:
+    image: redis:latest
+    restart: always
+    command: redis-server --save 20 1 --loglevel warning --requirepass P@ssw0rd
+    volumes:
+      - redis_data:/data
+    networks:
+      - backend
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        order: stop-first
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - backend
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: master123
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        order: stop-first
+
+  backend:
+    image: ghcr.io/pmi-project/warehouse-backend:${GIT_COMMIT_HASH:-latest}
+    networks:
+      - backend
+    ports:
+      - '9001:9001'
+    environment:
+      - APP_NAME=@pmi/wms-pmi-be
+      - APP_ENV=staging
+      - HTTP_ENABLE=true
+      - HTTP_HOST=0.0.0.0
+      - HTTP_PORT=9001
+      - HTTP_VERSIONING_ENABLE=true
+      - HTTP_VERSION=1
+      - ACCESS_TOKEN_SECRET_KEY=${ACCESS_TOKEN_SECRET_KEY}
+      - ACCESS_TOKEN_EXPIRED=1d
+      - REFRESH_TOKEN_SECRET_KEY=${REFRESH_TOKEN_SECRET_KEY}
+      - REFRESH_TOKEN_EXPIRED=7d
+      - RABBITMQ_URL=amqp://admin:master123@rabbitmq:5672
+      - RABBITMQ_AUTH_QUEUE=auth_queue
+      - RABBITMQ_TAG_QUEUE=tag_queue
+      - RABBITMQ_PRODUCT_QUEUE=product_queue
+      - DATABASE_URL=postgresql://postgres:P@ssw0rd@postgres:5432/wms-pmi
+      - AUTH_URL_DEV=${AUTH_URL_DEV}
+    deploy:
+      replicas: 1
+      update_config:
+        order: start-first
+    depends_on:
+      - postgres
+      - redis
+      - rabbitmq
 
   web:
     image: ghcr.io/pmi-project/warehouse-client:${GIT_COMMIT_HASH:-latest}
-    labels:
-      - 'traefik.enable=true'
-      - 'traefik.http.services.web.loadbalancer.server.port=8080'
-      - 'traefik.http.routers.web.rule=Host(`wms.artix-labs.com`)'
-      - 'traefik.http.routers.web.entrypoints=websecure'
-      - 'traefik.http.routers.web.tls.certresolver=myresolver'
+    networks:
+      - backend
+    ports:
+      - '3000:3000'
     secrets:
       - auth-secret
     environment:
@@ -39,11 +93,21 @@ services:
       - NEXT_PUBLIC_DEVICE_HUB=${NEXT_PUBLIC_DEVICE_HUB}
       - AUTH_URL_DEV=${AUTH_URL_DEV}
     deploy:
+      replicas: 1
       update_config:
         order: start-first
 
+networks:
+  backend:
+    driver: overlay
+
 volumes:
-  letsencrypt:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
 
 secrets:
   auth-secret:
