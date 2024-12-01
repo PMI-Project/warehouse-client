@@ -110,6 +110,28 @@ export type Employee = {
   profile_picture?: string | null; // Profile picture can be a string (URL) or null (if no picture)
 };
 
+export type Tag = {
+  id: string;
+  tag: string;
+  deviceNo: number;
+  antennaNo: number;
+  timestamp: string;
+  scanCount: number;
+  tagName?: string;
+  quantity?: number;
+  expiredDate?: Date;
+  processed: boolean;
+};
+
+export type Product = {
+  id: string;
+  productName: string;
+  productCode: string;
+  productType: string;
+  unit: number;
+  tagId: string;
+};
+
 export const navItems: NavItem[] = [
   {
     title: 'Dashboard',
@@ -118,10 +140,24 @@ export const navItems: NavItem[] = [
     label: 'Dashboard'
   },
   {
-    title: 'Product',
-    href: '/dashboard/products',
+    title: 'Inventory',
+    href: '/dashboard/inventory',
     icon: 'package',
-    label: 'product'
+    label: 'inventory',
+    submenu: [
+      {
+        title: 'Tags',
+        href: '/dashboard/inventory/tags',
+        icon: 'package',
+        label: 'tags'
+      },
+      {
+        title: 'Products',
+        href: '/dashboard/inventory/products',
+        icon: 'kanban',
+        label: 'products'
+      }
+    ]
   },
   {
     title: 'User',
@@ -140,19 +176,19 @@ export const navItems: NavItem[] = [
     href: '/dashboard/profile',
     icon: 'profile',
     label: 'profile'
-  },
-  {
-    title: 'Kanban',
-    href: '/dashboard/kanban',
-    icon: 'kanban',
-    label: 'kanban'
-  },
-  {
-    title: 'Login',
-    href: '/',
-    icon: 'login',
-    label: 'login'
   }
+  // {
+  //   title: 'Kanban',
+  //   href: '/dashboard/kanban',
+  //   icon: 'kanban',
+  //   label: 'kanban'
+  // },
+  // {
+  //   title: 'Login',
+  //   href: '/',
+  //   icon: 'login',
+  //   label: 'login'
+  // }
 ];
 
 export const DEVICE_HUB = process.env.NEXT_PUBLIC_DEVICE_HUB as string;

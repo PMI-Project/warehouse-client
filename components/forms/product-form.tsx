@@ -1,6 +1,6 @@
 'use client';
 import * as z from 'zod';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { Trash } from 'lucide-react';
@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -25,40 +24,32 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-// import FileUpload from "@/components/FileUpload";
 import { useToast } from '../ui/use-toast';
-import FileUpload from '../file-upload';
-const ImgSchema = z.object({
-  fileName: z.string(),
-  name: z.string(),
-  fileSize: z.number(),
-  size: z.number(),
-  fileKey: z.string(),
-  key: z.string(),
-  fileUrl: z.string(),
-  url: z.string()
-});
-export const IMG_MAX_LIMIT = 3;
+import { fetchTagData } from '@/lib/list-tag';
+
 const formSchema = z.object({
-  name: z
+  productName: z
     .string()
     .min(3, { message: 'Product Name must be at least 3 characters' }),
-  imgUrl: z
-    .array(ImgSchema)
-    .max(IMG_MAX_LIMIT, { message: 'You can only add up to 3 images' })
-    .min(1, { message: 'At least one image must be added.' }),
-  description: z
-    .string()
-    .min(3, { message: 'Product description must be at least 3 characters' }),
-  price: z.coerce.number(),
-  category: z.string().min(1, { message: 'Please select a category' })
+  productCode: z.string().min(1, { message: 'Product Code is required' }),
+  productType: z.string().min(1, { message: 'Product Type is required' }),
+  unit: z.coerce.number().min(1, { message: 'Unit must be at least 1' }),
+  tagId: z.string().min(1, { message: 'Please select a tag' }) // Add tagId validation
 });
+
+export type Product = {
+  id: string;
+  productName: string;
+  productCode: string;
+  productType: string;
+  unit: number;
+  tagId: string;
+};
 
 type ProductFormValues = z.infer<typeof formSchema>;
 
 interface ProductFormProps {
-  initialData: any | null;
+  initialData: Product | null;
   categories: any;
 }
 
@@ -69,22 +60,21 @@ export const ProductForm: React.FC<ProductFormProps> = ({
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
-  const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [imgLoading, setImgLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [tags, setTags] = useState<any[]>([]);
   const title = initialData ? 'Edit product' : 'Create product';
-  const description = initialData ? 'Edit a product.' : 'Add a new product';
-  const toastMessage = initialData ? 'Product updated.' : 'Product created.';
+  const description = initialData ? 'Edit a product.' : 'Add a new product.';
   const action = initialData ? 'Save changes' : 'Create';
 
   const defaultValues = initialData
-    ? initialData
+    ? { ...initialData }
     : {
-        name: '',
-        description: '',
-        price: 0,
-        imgUrl: [],
-        category: ''
+        productName: '',
+        productCode: '',
+        productType: '',
+        unit: 1,
+        tagId: ''
       };
 
   const form = useForm<ProductFormValues>({
@@ -92,21 +82,62 @@ export const ProductForm: React.FC<ProductFormProps> = ({
     defaultValues
   });
 
+  useEffect(() => {
+    const fetchData = async () => {
+      console.log('Fetching tag data...');
+      try {
+        const tags = await fetchTagData();
+        console.log('Tag data response:', tags);
+        if (Array.isArray(tags)) {
+          console.log('Tag data dropdown:', tags);
+          setTags(tags);
+        } else {
+          console.error('Invalid data structure:', tags);
+        }
+      } catch (error) {
+        console.error('Failed to fetch tag data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   const onSubmit = async (data: ProductFormValues) => {
     try {
       setLoading(true);
-      if (initialData) {
-        // await axios.post(`/api/products/edit-product/${initialData._id}`, data);
-      } else {
-        // const res = await axios.post(`/api/products/create-product`, data);
-        // console.log("product", res);
+
+      const payload = {
+        productName: data.productName,
+        productCode: data.productCode,
+        productType: data.productType,
+        unit: data.unit,
+        tagId: data.tagId
+      };
+
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_HUB}/product/add`;
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
       }
+
+      const result = await response.json();
+      console.log('Product added successfully:', result);
+
       router.refresh();
-      router.push(`/dashboard/products`);
+      router.push(`/dashboard/inventory/products`);
       toast({
-        variant: 'destructive',
-        title: 'Uh oh! Something went wrong.',
-        description: 'There was a problem with your request.'
+        title: 'Success',
+        description: 'Product created successfully.'
       });
     } catch (error: any) {
       toast({
@@ -114,34 +145,14 @@ export const ProductForm: React.FC<ProductFormProps> = ({
         title: 'Uh oh! Something went wrong.',
         description: 'There was a problem with your request.'
       });
+      console.error('Failed to submit product:', error);
     } finally {
       setLoading(false);
     }
   };
-
-  const onDelete = async () => {
-    try {
-      setLoading(true);
-      //   await axios.delete(`/api/${params.storeId}/products/${params.productId}`);
-      router.refresh();
-      router.push(`/${params.storeId}/products`);
-    } catch (error: any) {
-    } finally {
-      setLoading(false);
-      setOpen(false);
-    }
-  };
-
-  const triggerImgUrlValidation = () => form.trigger('imgUrl');
 
   return (
     <>
-      {/* <AlertModal
-        isOpen={open}
-        onClose={() => setOpen(false)}
-        onConfirm={onDelete}
-        loading={loading}
-      /> */}
       <div className="flex items-center justify-between">
         <Heading title={title} description={description} />
         {initialData && (
@@ -161,30 +172,13 @@ export const ProductForm: React.FC<ProductFormProps> = ({
           onSubmit={form.handleSubmit(onSubmit)}
           className="w-full space-y-8"
         >
-          <FormField
-            control={form.control}
-            name="imgUrl"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Images</FormLabel>
-                <FormControl>
-                  <FileUpload
-                    onChange={field.onChange}
-                    value={field.value}
-                    onRemove={field.onChange}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
           <div className="gap-8 md:grid md:grid-cols-3">
             <FormField
               control={form.control}
-              name="name"
+              name="productName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Name</FormLabel>
+                  <FormLabel>Product Name</FormLabel>
                   <FormControl>
                     <Input
                       disabled={loading}
@@ -198,14 +192,14 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             />
             <FormField
               control={form.control}
-              name="description"
+              name="productCode"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Description</FormLabel>
+                  <FormLabel>Product Code</FormLabel>
                   <FormControl>
                     <Input
                       disabled={loading}
-                      placeholder="Product description"
+                      placeholder="Product code"
                       {...field}
                     />
                   </FormControl>
@@ -215,10 +209,27 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             />
             <FormField
               control={form.control}
-              name="price"
+              name="productType"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Price</FormLabel>
+                  <FormLabel>Product Type</FormLabel>
+                  <FormControl>
+                    <Input
+                      disabled={loading}
+                      placeholder="Product type"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="unit"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Unit</FormLabel>
                   <FormControl>
                     <Input type="number" disabled={loading} {...field} />
                   </FormControl>
@@ -228,29 +239,24 @@ export const ProductForm: React.FC<ProductFormProps> = ({
             />
             <FormField
               control={form.control}
-              name="category"
+              name="tagId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Category</FormLabel>
+                  <FormLabel>Tag</FormLabel>
                   <Select
                     disabled={loading}
                     onValueChange={field.onChange}
                     value={field.value}
-                    defaultValue={field.value}
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue
-                          defaultValue={field.value}
-                          placeholder="Select a category"
-                        />
+                        <SelectValue placeholder="Select a tag" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {/* @ts-ignore  */}
-                      {categories.map((category) => (
-                        <SelectItem key={category._id} value={category._id}>
-                          {category.name}
+                      {tags.map((tag) => (
+                        <SelectItem key={tag.id} value={tag.id}>
+                          {tag.tag} {/* Display the tag name */}
                         </SelectItem>
                       ))}
                     </SelectContent>

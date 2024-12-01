@@ -57,6 +57,7 @@
     "date-fns": "^2.30.0",
     "eslint": "8.48.0",
     "eslint-config-next": "^14.0.1",
+    "lodash": "^4.17.21",
     "lucide-react": "^0.291.0",
     "next": "^14.2.3",
     "next-auth": "^5.0.0-beta.18",
@@ -82,6 +83,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.47.1",
+    "@types/lodash": "^4.17.13",
     "@types/uuid": "^9.0.7",
     "@typescript-eslint/eslint-plugin": "^6.11.0",
     "husky": "^9.0.11",
