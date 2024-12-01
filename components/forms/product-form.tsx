@@ -256,7 +256,7 @@ export const ProductForm: React.FC<ProductFormProps> = ({
                     <SelectContent>
                       {tags.map((tag) => (
                         <SelectItem key={tag.id} value={tag.id}>
-                          {tag.tag} {/* Display the tag name */}
+                          {tag.tag}
                         </SelectItem>
                       ))}
                     </SelectContent>
