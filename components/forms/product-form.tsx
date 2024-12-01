@@ -27,6 +27,7 @@ import {
 import { useToast } from '../ui/use-toast';
 import { fetchTagData } from '@/lib/list-tag';
 
+export const IMG_MAX_LIMIT = 3;
 const formSchema = z.object({
   productName: z
     .string()
