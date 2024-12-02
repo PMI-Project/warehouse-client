@@ -190,7 +190,7 @@ export function ProductTable<TData, TValue>({
         value={searchValue}
         onChange={(event) => {
           const value = event.target.value;
-          setSearchValue(value); // Update searchValue state on input change
+          setSearchValue(value);
         }}
         className="w-full md:max-w-sm"
       />
