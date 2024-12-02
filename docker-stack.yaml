@@ -70,7 +70,6 @@ services:
       - RABBITMQ_TAG_QUEUE=tag_queue
       - RABBITMQ_PRODUCT_QUEUE=product_queue
       - DATABASE_URL=postgresql://postgres:P@ssw0rd@postgres:5432/wms-pmi
-      - AUTH_URL_DEV=${AUTH_URL_DEV}
     deploy:
       replicas: 1
       update_config:
