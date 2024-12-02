@@ -71,7 +71,7 @@ export const TagForm: React.FC<TagFormProps> = ({ initialData }) => {
         tagName: initialData.tagName || '',
         quantity: initialData.quantity ?? undefined,
         expiredDate: initialData.expiredDate
-          ? initialData.expiredDate.toISOString().split('T')[0]
+          ? new Date(initialData.expiredDate).toISOString().split('T')[0]
           : undefined,
         processed: initialData.processed ?? undefined
       }
@@ -105,7 +105,7 @@ export const TagForm: React.FC<TagFormProps> = ({ initialData }) => {
           tagName: initialData.tagName || '',
           quantity: initialData.quantity ?? undefined,
           expiredDate: initialData.expiredDate
-            ? initialData.expiredDate.toISOString().split('T')[0]
+            ? new Date(initialData.expiredDate).toISOString().split('T')[0]
             : undefined,
           processed: initialData.processed ?? undefined
         });

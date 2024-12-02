@@ -1,5 +1,5 @@
 import * as signalR from '@microsoft/signalr';
 
 export const conn = new signalR.HubConnectionBuilder()
-  .withUrl(`${process.env.NEXT_PUBLIC_DEVICE_HUB}`)
+  .withUrl(`http://localhost:5000/deviceHub`)
   .build();
