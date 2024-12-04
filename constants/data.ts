@@ -159,7 +159,7 @@ export const navItems: NavItem[] = [
       },
       {
         title: 'Transactions',
-        href: '/dashboard/inventory/transactions',
+        href: '/dashboard/inventory/transaction',
         icon: 'kanban',
         label: 'products'
       }

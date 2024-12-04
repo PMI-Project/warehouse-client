@@ -13,7 +13,7 @@ import { ProductQuickActions } from '../../products/_components/QuickActions';
 
 const breadcrumbItems = [
   { title: 'Dashboard', link: '/dashboard' },
-  { title: 'Tag', link: '/dashboard/inventory/tags' }
+  { title: 'Transaction', link: '/dashboard/inventory/transaction' }
 ];
 
 type ParamsProps = {
@@ -28,10 +28,9 @@ export default async function Page(props: ParamsProps) {
   const pageLimit = Number(searchParams.limit) || 10;
 
   const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_HUB}/tag/list?page=${page}&perPage=${pageLimit}`
+    `${process.env.NEXT_PUBLIC_API_HUB}/transaction/list/latest-batch?page=${page}&perPage=${pageLimit}`
   );
   const tagRes = await res.json();
-  console.log('Data : ', tagRes);
 
   const totalTags = tagRes.data.meta.total;
   const pageCount = Math.ceil(totalTags / pageLimit);
@@ -48,9 +47,9 @@ export default async function Page(props: ParamsProps) {
             description="Manage current tags, the initial data captured from the scanner in certain batch."
           />
 
-          <ProductQuickActions>
+          {/* <ProductQuickActions>
             <Button>Quick Menu</Button>
-          </ProductQuickActions>
+          </ProductQuickActions> */}
         </div>
         <Separator />
 

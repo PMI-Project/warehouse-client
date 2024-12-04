@@ -26,6 +26,7 @@ export type State = {
   tasks: Task[];
   columns: Column[];
   draggedTask: string | null;
+  batchId: number | null;
 };
 
 const initialTasks: Task[] = [
@@ -50,6 +51,7 @@ export type Actions = {
   setTasks: (updatedTask: Task[]) => void;
   setCols: (cols: Column[]) => void;
   updateCol: (id: UniqueIdentifier, newName: string) => void;
+  setBatchId: (id: number) => void;
 };
 
 export const useTaskStore = create<State & Actions>()(
@@ -58,6 +60,7 @@ export const useTaskStore = create<State & Actions>()(
       tasks: initialTasks,
       columns: defaultCols,
       draggedTask: null,
+      batchId: null,
       addTask: (title: string, description?: string) =>
         set((state) => ({
           tasks: [
@@ -88,7 +91,8 @@ export const useTaskStore = create<State & Actions>()(
           columns: state.columns.filter((col) => col.id !== id)
         })),
       setTasks: (newTasks: Task[]) => set({ tasks: newTasks }),
-      setCols: (newCols: Column[]) => set({ columns: newCols })
+      setCols: (newCols: Column[]) => set({ columns: newCols }),
+      setBatchId: (id: number) => set({ batchId: id })
     }),
     { name: 'task-store', skipHydration: true }
   )
