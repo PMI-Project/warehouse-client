@@ -13,6 +13,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useInventoryForm } from '@/hooks/use-inventory-form';
+import { useTaskStore } from '@/lib/store';
+import { v4 as uuid } from 'uuid';
 
 const formSchema = z.object({
   ip: z.string().ip({
@@ -42,7 +44,38 @@ export function StartInventoryForm() {
     getDevices
   } = useInventoryForm({ form });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  const setBatchId = useTaskStore((state) => state.setBatchId);
+  const lastBatchId = useTaskStore((state) => state.batchId);
+
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    const randomName = `${uuid()}-${(lastBatchId || 0) + 1}`;
+
+    const payload = {
+      name: randomName,
+      createdAt: new Date().toISOString()
+    };
+
+    try {
+      const response = await fetch('http://localhost:9001/api/v1/batch/add', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Batch added successfully:', data);
+        setBatchId(lastBatchId ? lastBatchId + 1 : 1);
+      } else {
+        const errorData = await response.json();
+        console.error('Error adding batch:', errorData.message);
+      }
+    } catch (error) {
+      console.error('Fetch error:', error);
+    }
+
     startInventory(values.ip, values.port);
   }
 

@@ -16,9 +16,9 @@ export default async function Page() {
         <Breadcrumbs items={breadcrumbItems} />
         <div className="flex items-start justify-between">
           <Heading title="Products" description="Manage your products" />
-          <ProductQuickActions>
+          {/* <ProductQuickActions>
             <Button>Quick Menu</Button>
-          </ProductQuickActions>
+          </ProductQuickActions> */}
         </div>
         <Separator />
       </div>

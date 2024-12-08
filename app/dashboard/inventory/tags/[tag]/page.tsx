@@ -3,9 +3,8 @@
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import { TagForm } from '@/components/forms/tag-form';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useTagQuery } from '@/lib/queries/tags';
 import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { fetchTagData } from '@/lib/fetch-tag';
 
 const breadcrumbItems = [
   { title: 'Dashboard', link: '/dashboard' },
@@ -15,34 +14,15 @@ const breadcrumbItems = [
 
 export default function Page() {
   const { tag } = useParams();
-  const [tagData, setTagData] = useState(null);
-  const [loading, setLoading] = useState(true);
-
   const tagId = Array.isArray(tag) ? tag[0] : tag;
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!tagId) return;
+  const { data: tagData, isLoading, isError } = useTagQuery(tagId);
 
-      console.log('Fetching data for tagId:', tagId);
-      try {
-        const data = await fetchTagData(tagId);
-        setTagData(data);
-      } catch (error) {
-        console.error('Failed to fetch tag data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [tagId]);
-
-  if (loading) {
+  if (isLoading) {
     return <p>Loading...</p>;
   }
 
-  if (!tagData) {
+  if (isError || !tagData) {
     return <p>Tag not found.</p>;
   }
 
