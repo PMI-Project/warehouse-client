@@ -47,5 +47,5 @@ jobs:
           name: artix-wms
           file: docker-stack.yaml
           host: artix-labs.com
-          user: deploy
+          user: artixlabs
           ssh_key: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
