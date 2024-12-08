@@ -22,6 +22,8 @@ declare module 'next-auth' {
 
   type UserSession = DefaultSession['user'];
   interface Session {
+    accessToken: string;
+    refreshToken: string;
     user: User;
     expires: string;
   }
