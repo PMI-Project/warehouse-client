@@ -28,7 +28,6 @@ const authConfig = {
         );
 
         const data = await response.json();
-        console.log('Data Login : ', data);
 
         if (response.ok && data) {
           return {

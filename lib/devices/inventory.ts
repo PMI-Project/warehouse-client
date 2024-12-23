@@ -1,35 +1,59 @@
 import { useEffect, useState } from 'react';
 import { conn } from '../signalr';
 import { toast } from 'sonner';
+import { useMutationTx } from '../queries/transactions';
+import { useDeviceStore } from '../store';
 
 export function useInventory() {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tags, setTags] = useState<any[]>([]);
+  const {
+    setDeviceStatus,
+    setDeviceIp,
+    resetDeviceStore,
+    ip: deviceIp,
+    status: deviceStatus
+  } = useDeviceStore();
+  const mutation = useMutationTx();
 
-  const startInventory = async (ip: string, port: string) => {
+  const startInventory = async (ip: string, port: string, batchId: number) => {
     try {
       setLoading(true);
       setError(null);
 
-      conn.on('Connected', () => {
+      conn.on('Connected', (deviceHandle: string) => {
+        if (deviceHandle) {
+          console.log('🚀 ~ conn.on ~ deviceHandle:', deviceHandle);
+          setDeviceStatus(true);
+          setDeviceIp(ip);
+        }
+
         setData('Connected');
         setLoading(false);
       });
 
       conn.on('Error', (errorMsg: string) => {
+        resetDeviceStore();
         setError(errorMsg);
         setLoading(false);
       });
 
       conn.on('InventoryStarted', (tags: any) => {
-        console.log(tags);
         setData('InventoryStarted');
         setLoading(false);
       });
 
       conn.on('TagRead', (tag: any) => {
+        mutation.mutateAsync({
+          AntennaNo: tag.antennaNo,
+          batchId,
+          DeviceNo: tag.deviceNo,
+          Tag: tag.tag,
+          Timestamp: tag.timestamp,
+          ScanCount: 1
+        });
         toast.success(`New Tag: ${tag.tag}`);
       });
 
@@ -60,6 +84,7 @@ export function useInventory() {
       conn.off('Error');
       conn.off('TagRead');
       conn.off('InventoryStarted');
+      resetDeviceStore();
 
       await conn.stop();
 

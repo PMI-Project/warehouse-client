@@ -23,7 +23,15 @@ const formSchema = z.object({
   port: z.string()
 });
 
-export function StartInventoryForm() {
+interface StartInventoryForm {
+  onInventoryStart?: () => void;
+  onInventoryStop?: () => void;
+}
+
+export function StartInventoryForm({
+  onInventoryStart,
+  onInventoryStop
+}: StartInventoryForm) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -65,9 +73,9 @@ export function StartInventoryForm() {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        console.log('Batch added successfully:', data);
         setBatchId(lastBatchId ? lastBatchId + 1 : 1);
+        startInventory(values.ip, values.port, lastBatchId ? lastBatchId : 1);
+        onInventoryStart?.();
       } else {
         const errorData = await response.json();
         console.error('Error adding batch:', errorData.message);
@@ -75,8 +83,6 @@ export function StartInventoryForm() {
     } catch (error) {
       console.error('Fetch error:', error);
     }
-
-    startInventory(values.ip, values.port);
   }
 
   return (

@@ -54,6 +54,22 @@ export type Actions = {
   setBatchId: (id: number) => void;
 };
 
+export type DeviceStatus = {
+  status: boolean;
+  ip: string;
+  setDeviceStatus: (status: boolean) => void;
+  setDeviceIp: (ip: string) => void;
+  resetDeviceStore: () => void;
+};
+
+export const useDeviceStore = create<DeviceStatus>()((set) => ({
+  status: false,
+  ip: '',
+  setDeviceStatus: (status: boolean) => set({ status }),
+  setDeviceIp: (ip: string) => set({ ip }),
+  resetDeviceStore: () => set({ ip: '', status: false })
+}));
+
 export const useTaskStore = create<State & Actions>()(
   persist(
     (set) => ({

@@ -12,6 +12,8 @@ import { Button } from '@/components/ui/button';
 import { ResponsiveDialog } from '@/components/responsive-dialog';
 import { useInventory } from '@/lib/devices/inventory';
 import { useTaskStore } from '@/lib/store';
+import { useTransactionQuery } from '@/lib/queries/transactions';
+import { useBatchQuery } from '@/lib/queries/batch';
 
 export function ProductQuickActions({
   children
@@ -19,31 +21,22 @@ export function ProductQuickActions({
   children: React.ReactNode;
 }) {
   const [isScanProductOpen, setIsScanProductOpen] = useState(false);
-  const { stopInventory } = useInventory();
+  const { startInventory } = useInventory();
+  const { data: batchData, isLoading: isLoadingBatch } = useBatchQuery(1, 10);
   const setBatchId = useTaskStore((state) => state.setBatchId);
-  const lastBatchId = useTaskStore((state) => state.batchId);
 
   const handleScanProduct = async () => {
-    console.log('Scan Product button pressed : ', lastBatchId);
-
-    try {
-      const response = await fetch(
-        'http://localhost:9001/api/v1/batch/list?page=1&perPage=10&q'
-      );
-      const data = await response.json();
-
-      if (response.ok) {
-        const lastBatchId = data.data.data[data.data.data.length - 1].id;
-        setBatchId(lastBatchId);
-        console.log('Last Batch ID:', lastBatchId);
-      } else {
-        console.error('Error fetching data:', data.message);
+    if (!isLoadingBatch) {
+      if (batchData) {
+        setBatchId(batchData.batch[0].id);
       }
-    } catch (error) {
-      console.error('Fetch error:', error);
     }
 
     setIsScanProductOpen(true);
+  };
+
+  const handleInventoryStart = () => {
+    setIsScanProductOpen(false);
   };
 
   return (
@@ -51,10 +44,9 @@ export function ProductQuickActions({
       <ResponsiveDialog
         isOpen={isScanProductOpen}
         setIsOpen={setIsScanProductOpen}
-        onClose={stopInventory}
         title="Start Scanning Inventory"
       >
-        <StartInventoryForm />
+        <StartInventoryForm onInventoryStart={handleInventoryStart} />
       </ResponsiveDialog>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>

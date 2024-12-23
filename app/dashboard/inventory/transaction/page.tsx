@@ -2,19 +2,22 @@ import { Breadcrumbs } from '@/components/breadcrumbs';
 import PageContainer from '@/components/layout/page-container';
 import { columns } from '@/components/tables/tag-tables/columns';
 import { TagTable } from '@/components/tables/tag-tables/tag-table';
-import { Button, buttonVariants } from '@/components/ui/button';
-import { Heading } from '@/components/ui/heading';
 import { Separator } from '@/components/ui/separator';
-import { Tag } from '@/constants/data';
-import { cn } from '@/lib/utils';
-import { Plus } from 'lucide-react';
-import Link from 'next/link';
 import { ProductQuickActions } from '../../products/_components/QuickActions';
+import { dehydrate, HydrationBoundary } from '@tanstack/react-query';
+import { Heading } from '@/components/ui/heading';
+import { queryClient } from '@/lib/queryClient';
+import { fetchTransactions } from '@/lib/queries/transactions';
+import { TransactionTable } from '@/components/tables/transactions-tables/tag-table';
+import { Button } from '@/components/ui/button';
+import { DeviceStatus } from './_component/device-status';
 
 const breadcrumbItems = [
   { title: 'Dashboard', link: '/dashboard' },
   { title: 'Transaction', link: '/dashboard/inventory/transaction' }
 ];
+
+const PAGE_LIMIT = 10;
 
 type ParamsProps = {
   searchParams: Promise<{
@@ -25,16 +28,14 @@ type ParamsProps = {
 export default async function Page(props: ParamsProps) {
   const searchParams = await props.searchParams;
   const page = Number(searchParams.page) || 1;
-  const pageLimit = Number(searchParams.limit) || 10;
+  const pageLimit = PAGE_LIMIT;
 
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_HUB}/transaction/list/latest-batch?page=${page}&perPage=${pageLimit}`
-  );
-  const tagRes = await res.json();
+  await queryClient.prefetchQuery({
+    queryKey: ['transactions'],
+    queryFn: () => fetchTransactions(page, pageLimit)
+  });
 
-  const totalTags = tagRes.data.meta.total;
-  const pageCount = Math.ceil(totalTags / pageLimit);
-  const tags: Tag[] = tagRes.data.data;
+  const dehydratedState = dehydrate(queryClient);
 
   return (
     <PageContainer>
@@ -47,20 +48,24 @@ export default async function Page(props: ParamsProps) {
             description="Manage current tags, the initial data captured from the scanner in certain batch."
           />
 
-          {/* <ProductQuickActions>
-            <Button>Quick Menu</Button>
-          </ProductQuickActions> */}
+          <div className="flex gap-2">
+            <DeviceStatus />
+            <ProductQuickActions>
+              <Button>Quick Menu</Button>
+            </ProductQuickActions>
+          </div>
         </div>
         <Separator />
 
-        <TagTable
-          searchKey="transaction"
-          pageNo={page}
-          columns={columns}
-          totalUsers={totalTags}
-          data={tags}
-          pageCount={pageCount}
-        />
+        <HydrationBoundary state={dehydratedState}>
+          <TransactionTable
+            searchKey="transaction"
+            pageNo={page}
+            columns={columns}
+            pageCount={0}
+            pageLimit={pageLimit}
+          />
+        </HydrationBoundary>
       </div>
     </PageContainer>
   );

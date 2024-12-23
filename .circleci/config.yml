@@ -1,47 +1,48 @@
-# This config was automatically generated from your source code
-# Stacks detected: cicd:github-actions:.github/workflows,deps:node:.
 version: 2.1
-orbs:
-  node: circleci/node@5
+executors:
+  docker-executor:
+    docker:
+      - image: docker:latest
+
 jobs:
-  build-node:
-    # Build node project
-    executor: node/default
+  build:
+    executor: docker-executor
     steps:
       - checkout
-      - node/install-packages:
-          pkg-manager: pnpm
+      - setup_remote_docker
       - run:
-          command: pnpm run build
+          name: Log in to GHCR
+          command: echo $CR_PAT | docker login ghcr.io -u $GITHUB_USERNAME --password-stdin
       - run:
-          name: Create the ~/artifacts directory if it doesn't exist
-          command: mkdir -p ~/artifacts
-      # Copy output to artifacts dir
+          name: Build Docker Image
+          command: docker build -t ghcr.io/${GITHUB_USERNAME}/my-image:latest .
       - run:
-          name: Copy artifacts
-          command: cp -R build dist public .output .next .docusaurus ~/artifacts 2>/dev/null || true
-      - store_artifacts:
-          path: ~/artifacts
-          destination: node-build
+          name: Push Docker Image
+          command: docker push ghcr.io/${GITHUB_USERNAME}/my-image:latest
+
   deploy:
-    # This is an example deploy job, not actually used by the workflow
-    docker:
-      - image: cimg/base:stable
+    executor: docker-executor
     steps:
       - add_ssh_keys:
           fingerprints:
-            -
-      # Replace this with steps to deploy to users
+            - '<your-fingerprint>'
       - run:
-          name: deploy
-          command: '#e.g. ./deploy.sh'
+          name: Copy docker-stack.yaml to VPS
+          command: scp -o StrictHostKeyChecking=no docker-stack.yaml $VPS_USER@$VPS_HOST:/path/to/deploy
       - run:
-          name: found github actions config
-          command: ':'
+          name: Deploy Docker Stack
+          command: |
+            ssh -o StrictHostKeyChecking=no $VPS_USER@$VPS_HOST "docker stack deploy -c /path/to/deploy/docker-stack.yaml my-stack"
+
 workflows:
-  build:
+  version: 2
+  build-and-deploy:
     jobs:
-      - build-node
-    # - deploy:
-    #     requires:
-    #       - build-node
+      - build
+      - deploy:
+          requires:
+            - build
+          filters:
+            branches:
+              only:
+                - main
