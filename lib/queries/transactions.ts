@@ -1,5 +1,5 @@
 import { Tag } from '@/constants/data';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 interface TagsResponse {
   data: {
@@ -20,25 +20,35 @@ export interface TransactionQuery {
 }
 
 export function useTransactionQuery(page: number, pageLimit: number) {
+  const queryClient = useQueryClient();
+
   return useQuery({
     queryKey: ['transactions', page, pageLimit],
     queryFn: async () => {
+      console.log(`Fetching transactions for page ${page} with limit ${pageLimit}`);
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_HUB}/transaction/list/latest-batch?page=${page}&perPage=${pageLimit}`
       );
 
       if (!res.ok) {
+        console.error('Failed to fetch transactions:', res.statusText);
         throw new Error('Failed to fetch transactions');
       }
 
       const data = (await res.json()) as TagsResponse;
+      console.log('Received transaction data:', {
+        totalItems: data.data.meta.total,
+        itemsReceived: data.data.data.length,
+        pageCount: Math.ceil(data.data.meta.total / pageLimit)
+      });
 
       return {
         transactions: data.data.data,
         totalTransactions: data.data.meta.total,
         pageCount: Math.ceil(data.data.meta.total / pageLimit)
       };
-    }
+    },
+    staleTime: 1000
   });
 }
 

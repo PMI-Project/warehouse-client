@@ -36,6 +36,8 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Tag } from '@/constants/data'; // Ensure Tag type is imported
 import { useTransactionQuery } from '@/lib/queries/transactions';
+import Pusher from 'pusher-js';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface DataTableProps {
   columns: ColumnDef<Tag>[];
@@ -57,6 +59,7 @@ export function TransactionTable({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
 
   const { data: transactionData, isLoading } = useTransactionQuery(
     pageNo,
@@ -83,6 +86,39 @@ export function TransactionTable({
     getPaginationRowModel: getPaginationRowModel(),
     manualPagination: true
   });
+
+  React.useEffect(() => {
+    console.log('Initializing Pusher connection...');
+    const pusher = new Pusher('41a1ec9bc21c0ec74674', {
+      cluster: 'ap1',
+      forceTLS: true
+    });
+
+    const channel = pusher.subscribe('wms-be-staging');
+    console.log('Subscribed to channel: wms-be-staging');
+
+    channel.bind('transaction', (newTransaction: Tag) => {
+      console.log('New transaction received:', newTransaction);
+      console.log('Invalidating queries and triggering refetch...');
+      queryClient.invalidateQueries({ queryKey: ['transactions'] });
+    });
+
+    // Log connection status
+    pusher.connection.bind('connected', () => {
+      console.log('Successfully connected to Pusher');
+    });
+
+    pusher.connection.bind('error', (err: any) => {
+      console.error('Pusher connection error:', err);
+    });
+
+    return () => {
+      console.log('Cleaning up Pusher connection...');
+      channel.unbind_all();
+      channel.unsubscribe();
+      pusher.disconnect();
+    };
+  }, [queryClient]);
 
   return (
     <>
