@@ -1,51 +1,77 @@
 'use client';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Tag } from '@/constants/data';
+import React from 'react';
 import { ColumnDef } from '@tanstack/react-table';
-import { CellAction } from './cell-action';
+import { format } from 'date-fns';
+import dynamic from 'next/dynamic';
+import { Badge } from '@/components/ui/badge';
 
-export const columns: ColumnDef<Tag>[] = [
+// Create a client-only date formatter component
+const DateCell = dynamic(() => Promise.resolve(({ date }: { date: string }) => {
+  const timestamp = new Date(date);
+  return format(timestamp, 'dd/MM/yyyy HH:mm:ss');
+}), { ssr: false });
+
+export interface Transaction {
+  id?: number;
+  timestamp: string;
+  epc: string;
+  rssi: string;
+  mode: string;
+  count?: number; // Optional count for grouped mode
+  isTemp?: boolean;
+  readyForBatch?: boolean; // Flag to indicate if transaction is ready to be added to a batch
+}
+
+// Pusher event type
+export interface TransactionEvent {
+  id?: number;
+  timestamp: string;
+  epc: string;
+  rssi: string;
+  mode: string;
+  isTemp?: boolean;
+}
+
+export const columns: ColumnDef<Transaction>[] = [
   {
-    id: 'select',
-    header: ({ table }) => (
-      <Checkbox
-        checked={table.getIsAllPageRowsSelected()}
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label="Select all"
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label="Select row"
-      />
-    ),
-    enableSorting: false,
-    enableHiding: false
+    accessorKey: "timestamp",
+    header: "Timestamp",
+    cell: ({ row }) => {
+      return <DateCell date={row.getValue("timestamp")} />;
+    },
   },
   {
-    accessorKey: 'tag',
-    header: 'TAG'
+    accessorKey: "epc",
+    header: "EPC",
   },
   {
-    accessorKey: 'tagName',
-    header: 'TAG NAME'
+    accessorKey: "rssi",
+    header: "RSSI",
+    cell: ({ row }) => {
+      return `${row.getValue("rssi")} dBm`;
+    },
   },
   {
-    accessorKey: 'deviceNo',
-    header: 'DEVICE NO.'
+    accessorKey: "mode",
+    header: "Mode",
   },
   {
-    accessorKey: 'antennaNo',
-    header: 'ANTENNA NO.'
+    accessorKey: "count",
+    header: "Count",
+    cell: ({ row }) => {
+      const count = row.getValue("count");
+      return count ? count : 1;
+    },
   },
   {
-    accessorKey: 'scanCount',
-    header: 'SCAN COUNT'
-  },
-  {
-    id: 'actions',
-    cell: ({ row }) => <CellAction data={row.original} />
+    accessorKey: "status",
+    header: "Status",
+    cell: ({ row }) => {
+      return (
+        <Badge variant={row.original.isTemp ? "outline" : "default"}>
+          {row.original.isTemp ? "Pending" : "Saved"}
+        </Badge>
+      );
+    },
   }
 ];

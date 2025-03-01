@@ -148,7 +148,7 @@ export function BarGraph() {
             Showing total visitors for the last 3 months
           </CardDescription>
         </div>
-        <div className="flex">
+        {/* <div className="flex">
           {['desktop', 'mobile'].map((key) => {
             const chart = key as keyof typeof chartConfig;
             return (
@@ -167,7 +167,7 @@ export function BarGraph() {
               </button>
             );
           })}
-        </div>
+        </div> */}
       </CardHeader>
       <CardContent className="px-2 sm:p-6">
         <ChartContainer

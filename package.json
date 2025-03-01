@@ -53,6 +53,7 @@
     "@types/react-dom": "18.2.7",
     "@uploadthing/react": "^5.7.0",
     "autoprefixer": "10.4.15",
+    "axios": "^1.7.9",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
     "date-fns": "^2.30.0",
@@ -86,6 +87,7 @@
   "devDependencies": {
     "@playwright/test": "^1.47.1",
     "@tanstack/eslint-plugin-query": "^5.62.1",
+    "@types/axios": "^0.14.0",
     "@types/lodash": "^4.17.13",
     "@types/uuid": "^9.0.7",
     "@typescript-eslint/eslint-plugin": "^6.11.0",

@@ -4,14 +4,15 @@ import { Breadcrumbs } from '@/components/breadcrumbs';
 import PageContainer from '@/components/layout/page-container';
 import { columns } from '@/components/tables/tag-tables/columns';
 import { TagTable } from '@/components/tables/tag-tables/tag-table';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Heading } from '@/components/ui/heading';
 import { Separator } from '@/components/ui/separator';
 import { Tag } from '@/constants/data';
 import { useSearchParams } from 'next/navigation';
 import { ProductQuickActions } from '../../products/_components/QuickActions';
-import { Loader2 } from 'lucide-react';
+import { Link, Loader2, Plus } from 'lucide-react';
 import { useTagsList } from '@/lib/queries/tags';
+import { cn } from '@/lib/utils';
 
 const breadcrumbItems = [
   { title: 'Dashboard', link: '/dashboard' },
@@ -58,9 +59,12 @@ export default function Page() {
             description="Manage tags, the initial data captured from the scanner, to track and process scanned items effectively."
           />
 
-          <ProductQuickActions>
-            <Button>Quick Menu</Button>
-          </ProductQuickActions>
+          <Link
+            href={'/dashboard/inventory/tags/new'}
+            className={cn(buttonVariants({ variant: 'default' }))}
+          >
+            <Plus className="mr-2 h-4 w-4" /> Add New
+          </Link>
         </div>
         <Separator />
 

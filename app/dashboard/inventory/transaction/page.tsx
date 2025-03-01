@@ -1,16 +1,23 @@
+'use client';
+
+import { useState } from 'react';
+import { RealTimeTransactionTable } from '@/components/tables/transactions-tables/real-time-transaction-table';
+import { CreateBatchDialog } from '@/components/dialogs/create-batch-dialog';
 import { Breadcrumbs } from '@/components/breadcrumbs';
 import PageContainer from '@/components/layout/page-container';
-import { columns } from '@/components/tables/tag-tables/columns';
-import { TagTable } from '@/components/tables/tag-tables/tag-table';
+import { columns, Transaction } from '@/components/tables/transactions-tables/columns';
+import { TransactionTable } from '@/components/tables/transactions-tables/tag-table';
 import { Separator } from '@/components/ui/separator';
-import { ProductQuickActions } from '../../products/_components/QuickActions';
 import { dehydrate, HydrationBoundary } from '@tanstack/react-query';
 import { Heading } from '@/components/ui/heading';
 import { queryClient } from '@/lib/queryClient';
 import { fetchTransactions } from '@/lib/queries/transactions';
-import { TransactionTable } from '@/components/tables/transactions-tables/tag-table';
-import { Button } from '@/components/ui/button';
 import { DeviceStatus } from './_component/device-status';
+import { QuickActions } from './_component/quick-actions';
+import { PusherTest } from './_component/pusher-test';
+import { TestEventGenerator } from './_component/test-event-generator';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 const breadcrumbItems = [
   { title: 'Dashboard', link: '/dashboard' },
@@ -19,53 +26,77 @@ const breadcrumbItems = [
 
 const PAGE_LIMIT = 10;
 
-type ParamsProps = {
-  searchParams: Promise<{
-    [key: string]: string | string[] | undefined;
-  }>;
-};
+export default function TransactionPage() {
+  const [selectedTransactions, setSelectedTransactions] = useState<Transaction[]>([]);
+  const [showDebug, setShowDebug] = useState(false);
+  const [isCountMode, setIsCountMode] = useState(false);
 
-export default async function Page(props: ParamsProps) {
-  const searchParams = await props.searchParams;
-  const page = Number(searchParams.page) || 1;
-  const pageLimit = PAGE_LIMIT;
+  const handleBatchCreated = () => {
+    setSelectedTransactions([]);
+  };
 
-  await queryClient.prefetchQuery({
-    queryKey: ['transactions'],
-    queryFn: () => fetchTransactions(page, pageLimit)
-  });
-
-  const dehydratedState = dehydrate(queryClient);
+  // Handle selected transactions from the table
+  const handleSelectedChange = (selectedIds: number[]) => {
+    // Get the actual transaction objects from the table component
+    // This will be implemented in the RealTimeTransactionTable component
+    // For now, we'll just store the IDs
+    setSelectedTransactions(selectedIds.map(id => ({ 
+      id, 
+      epc: '', // These will be populated by the RealTimeTransactionTable
+      rssi: '',
+      timestamp: '',
+      mode: ''
+    })));
+  };
 
   return (
     <PageContainer>
       <div className="space-y-4">
         <Breadcrumbs items={breadcrumbItems} />
-
         <div className="flex items-start justify-between">
           <Heading
-            title={`Transactions`}
+            title="Transactions"
             description="Manage current tags, the initial data captured from the scanner in certain batch."
           />
-
-          <div className="flex gap-2">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="count-mode"
+                checked={isCountMode}
+                onCheckedChange={setIsCountMode}
+              />
+              <Label htmlFor="count-mode" className="text-sm">
+                Count Mode {isCountMode ? "(On)" : "(Off)"}
+              </Label>
+            </div>
             <DeviceStatus />
-            <ProductQuickActions>
-              <Button>Quick Menu</Button>
-            </ProductQuickActions>
+            <QuickActions />
+            <button 
+              onClick={() => setShowDebug(!showDebug)}
+              className="text-xs text-gray-500 hover:text-gray-700"
+            >
+              {showDebug ? "Hide Debug" : "Debug"}
+            </button>
           </div>
         </div>
         <Separator />
-
-        <HydrationBoundary state={dehydratedState}>
-          <TransactionTable
-            searchKey="transaction"
-            pageNo={page}
-            columns={columns}
-            pageCount={0}
-            pageLimit={pageLimit}
+        {showDebug && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <PusherTest isCountMode={isCountMode} />
+            <TestEventGenerator />
+          </div>
+        )}
+        <div className="flex justify-end mb-4">
+          <CreateBatchDialog
+            selectedTransactions={selectedTransactions}
+            onBatchCreated={handleBatchCreated}
+            buttonLabel="Create Batch & Save"
           />
-        </HydrationBoundary>
+        </div>
+        <RealTimeTransactionTable
+          onSelectedChange={handleSelectedChange}
+          isCountMode={isCountMode}
+        />
       </div>
     </PageContainer>
   );

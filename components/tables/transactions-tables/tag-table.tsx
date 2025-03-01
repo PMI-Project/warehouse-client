@@ -9,7 +9,7 @@ import {
   getPaginationRowModel,
   useReactTable
 } from '@tanstack/react-table';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -34,18 +34,31 @@ import {
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Tag } from '@/constants/data'; // Ensure Tag type is imported
-import { useTransactionQuery } from '@/lib/queries/transactions';
-import Pusher from 'pusher-js';
+import { useTransactionQuery, useAddTransaction } from '@/lib/queries/transactions';
+import { pusherChannel, PUSHER_CONSTANTS } from '@/lib/pusher';
 import { useQueryClient } from '@tanstack/react-query';
+import { Transaction } from './columns';
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import Pusher from 'pusher-js';
 
 interface DataTableProps {
-  columns: ColumnDef<Tag>[];
+  columns: ColumnDef<Transaction>[];
   searchKey: string;
   pageNo: number;
-  pageSizeOptions?: number[];
   pageCount: number;
   pageLimit: number;
+}
+
+interface ScanData {
+  timestamp: string;
+  epc: string;
+  rssi: string;
+  mode: string;
+}
+
+interface GroupedTransaction extends Transaction {
+  count: number;
 }
 
 export function TransactionTable({
@@ -54,29 +67,56 @@ export function TransactionTable({
   searchKey,
   pageCount,
   pageLimit,
-  pageSizeOptions = [10, 20, 30, 40, 50]
 }: DataTableProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+  const addTransaction = useAddTransaction();
 
-  const { data: transactionData, isLoading } = useTransactionQuery(
-    pageNo,
-    pageLimit
-  );
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const { data: transactionData } = useTransactionQuery(pageNo, pageLimit);
 
-  // Pagination state
-  const [{ pageIndex, pageSize }, setPagination] =
-    React.useState<PaginationState>({
-      pageIndex: 0,
-      pageSize: pageSizeOptions[0] || 10
-    });
+  const [{ pageIndex, pageSize }, setPagination] = React.useState<PaginationState>({
+    pageIndex: pageNo - 1,
+    pageSize: pageLimit
+  });
 
-  const table = useReactTable({
-    data: transactionData?.transactions ?? [],
+  const [isCountMode, setIsCountMode] = useState(false);
+
+  // Modify the memo to handle grouped transactions
+  const allTransactions = React.useMemo(() => {
+    const baseTransactions = [...transactions, ...(transactionData?.transactions ?? [])] as Transaction[];
+    
+    if (!isCountMode) {
+      return baseTransactions;
+    }
+
+    // Group transactions by EPC and count occurrences
+    const groupedMap = baseTransactions.reduce((acc, curr) => {
+      const key = curr.epc;
+      if (!acc.has(key)) {
+        acc.set(key, {
+          ...curr,
+          count: 1
+        });
+      } else {
+        const existing = acc.get(key)!;
+        acc.set(key, {
+          ...existing,
+          count: existing.count + 1
+        });
+      }
+      return acc;
+    }, new Map<string, GroupedTransaction>());
+
+    return Array.from(groupedMap.values());
+  }, [transactions, transactionData, isCountMode]);
+
+  const table = useReactTable<Transaction>({
+    data: allTransactions,
     columns,
-    pageCount: pageCount ?? -1,
+    pageCount: pageCount,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     state: {
@@ -87,51 +127,63 @@ export function TransactionTable({
     manualPagination: true
   });
 
-  React.useEffect(() => {
-    console.log('Initializing Pusher connection...');
+  useEffect(() => {
     const pusher = new Pusher('41a1ec9bc21c0ec74674', {
-      cluster: 'ap1',
-      forceTLS: true
+      cluster: 'ap1'
     });
 
-    const channel = pusher.subscribe('wms-be-staging');
-    console.log('Subscribed to channel: wms-be-staging');
+    const channel = pusher.subscribe('rfid-scan');
+    channel.bind('tag-scanned', (data: {
+      timestamp: string;
+      epc: string;
+      rssi: string;
+      mode: string;
+    }) => {
+      // Convert the data to match the backend DTO format
+      const transactionData = {
+        Tag: data.epc,
+        DeviceNo: 1, // Default device number
+        AntennaNo: 1, // Default antenna number
+        Timestamp: data.timestamp,
+        ScanCount: 1, // Default scan count
+        mode: data.mode
+      };
 
-    channel.bind('transaction', (newTransaction: Tag) => {
-      console.log('New transaction received:', newTransaction);
-      console.log('Invalidating queries and triggering refetch...');
-      queryClient.invalidateQueries({ queryKey: ['transactions'] });
-    });
-
-    // Log connection status
-    pusher.connection.bind('connected', () => {
-      console.log('Successfully connected to Pusher');
-    });
-
-    pusher.connection.bind('error', (err: any) => {
-      console.error('Pusher connection error:', err);
+      // Send to backend
+      addTransaction.mutate(transactionData);
     });
 
     return () => {
-      console.log('Cleaning up Pusher connection...');
       channel.unbind_all();
       channel.unsubscribe();
-      pusher.disconnect();
     };
-  }, [queryClient]);
+  }, [addTransaction]);
 
   return (
-    <>
-      <Input
-        placeholder={`Search ${searchKey}...`}
-        value={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ''}
-        onChange={(event) =>
-          table.getColumn(searchKey)?.setFilterValue(event.target.value)
-        }
-        className="w-full md:max-w-sm"
-      />
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <Input
+          placeholder={`Search ${searchKey}...`}
+          value={(table.getColumn(searchKey)?.getFilterValue() as string) ?? ''}
+          onChange={(event) =>
+            table.getColumn(searchKey)?.setFilterValue(event.target.value)
+          }
+          className="w-full md:max-w-sm"
+        />
+        
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="count-mode"
+            checked={isCountMode}
+            onCheckedChange={setIsCountMode}
+          />
+          <Label htmlFor="count-mode">
+            {isCountMode ? 'Count Mode' : 'Normal Mode'}
+          </Label>
+        </div>
+      </div>
       <ScrollArea className="h-[calc(80vh-220px)] rounded-md border">
-        <Table className="relative">
+        <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
@@ -168,7 +220,7 @@ export function TransactionTable({
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  No results.
+                  No transactions yet.
                 </TableCell>
               </TableRow>
             )}
@@ -208,6 +260,6 @@ export function TransactionTable({
           </Button>
         </div>
       </div>
-    </>
+    </div>
   );
 }
